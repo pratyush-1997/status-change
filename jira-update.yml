@@ -1,0 +1,33 @@
+name: Update Jira Status
+
+on:
+  push:
+    branches:
+      - main  # Change to your desired branch
+
+jobs:
+  update-jira:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Extract Jira Issue Key
+        id: extract
+        run: |
+          ISSUE_KEY=$(echo ${{ github.event.head_commit.message }} | grep -oE '[A-Z]+-[0-9]+')
+          echo "ISSUE_KEY=$ISSUE_KEY" >> $GITHUB_ENV
+
+      - name: Update Jira Issue
+        if: env.ISSUE_KEY
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+        run: |
+          curl -X POST \
+            --url "$JIRA_BASE_URL/rest/api/2/issue/$ISSUE_KEY/transitions" \
+            --user "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+            --header 'Content-Type: application/json' \
+            --data '{"transition": {"id": "YOUR_TRANSITION_ID"}}'
